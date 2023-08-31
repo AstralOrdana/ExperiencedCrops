@@ -8,11 +8,6 @@ public class ExperiencedCropsForge {
 
     public ExperiencedCropsForge() {
         ExperiencedCrops.commonInit();
-        /*
-        if (PlatformHelper.getEnv().isClient()) {
-            ModidClient.init();
-        }
-        */
     }
 }
 

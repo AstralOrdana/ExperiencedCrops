@@ -7,8 +7,6 @@ public class ExperiencedCropsFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
-
         ExperiencedCrops.commonInit();
-
     }
 }
