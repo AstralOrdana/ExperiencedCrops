@@ -1,0 +1,279 @@
+@file:Suppress("UnstableApiUsage")
+
+plugins {
+	id("dev.kikugie.loom-back-compat")
+	id("dev.kikugie.postprocess.jsonlang")
+	id("me.modmuss50.mod-publish-plugin")
+	id("maven-publish")
+}
+
+val loader = sc.current.project.substringAfter('-')
+val fabric = loader == "fabric"
+val minecraft = stonecutter.current.version
+val mcVersion = stonecutter.current.project.substringBeforeLast('-')
+val unobfuscated = stonecutter.eval(mcVersion, ">26")
+
+tasks.named<ProcessResources>("processResources") {
+	fun prop(name: String) = project.property(name) as String
+
+	val props = HashMap<String, String>().apply {
+		this["mod_version"] = prop("mod.version") + "+" + prop("deps.minecraft")
+		this["minecraft"] = prop("deps.minecraft")
+		this["fabric_minecraft_dep"] = prop("deps.fabric_minecraft_dep")
+		this["neo_minecraft_dep"] = prop("deps.neo_minecraft_dep")
+		this["mod_name"] = prop("mod.name")
+		this["mod_description"] = prop("mod.description")
+		this["mod_license"] = prop("mod.license")
+		this["fabric_loader_version"] = prop("deps.fabric_loader")
+	}
+	inputs.properties(props)
+
+	filesMatching(listOf("fabric.mod.json", "META-INF/neoforge.mods.toml", "META-INF/mods.toml", "*.mixins.json")) {
+		expand(props)
+	}
+
+}
+
+
+loom {
+//	accessWidenerPath = rootProject.file("src/main/resources/${property("mod.id")}.accesswidener")
+	runs.configureEach {
+		isIdeConfigGenerated = true
+	}
+}
+
+
+tasks.named("processResources") {
+	dependsOn(":${stonecutter.current.project}:stonecutterGenerate")
+}
+
+val backportResources = when {
+	stonecutter.eval(mcVersion, ">=26.4") -> listOf("26.4")
+	stonecutter.eval(mcVersion, ">=26.3") -> listOf("common", "26", "26.3")
+	stonecutter.eval(mcVersion, ">=26.2") -> listOf("common", "26", "pre_26.3", "26.1", "26.2")
+	stonecutter.eval(mcVersion, ">=26") -> listOf("common", "26", "pre_26.3", "26.1")
+	else -> listOf("common", "pre_26.3", "1.21.1")
+}
+sourceSets.main {
+	backportResources.forEach { resources.srcDir(rootProject.file("src/main/backport/$it")) }
+	resources.srcDir(rootProject.file("src/main/datagen/${minecraft}"))
+}
+
+version = "${property("mod.version")}+${property("deps.minecraft")}-${loader}"
+base.archivesName = property("mod.id") as String
+
+jsonlang {
+	languageDirectories = listOf("assets/${property("mod.id")}/lang")
+	prettyPrint = true
+}
+
+repositories {
+	maven {
+		name = "shedaniel (Cloth Config)"
+		url = uri("https://maven.shedaniel.me/")
+		content {
+			includeGroupAndSubgroups("me.shedaniel")
+		}
+	}
+	maven {
+		name = "Terraformers (Mod Menu)"
+		url = uri("https://maven.terraformersmc.com/releases/")
+		content {
+			includeGroupAndSubgroups("com.terraformersmc")
+			includeGroup("dev.emi")
+		}
+	}
+	maven {
+		name = "Modrinth"
+		url = uri("https://api.modrinth.com/maven")
+		content {
+			includeGroupAndSubgroups("maven.modrinth")
+		}
+	}
+	maven {
+		name = "Sisby Maven"
+		url = uri("https://repo.sleeping.town/")
+		content {
+			includeGroupAndSubgroups("folk.sisby")
+		}
+	}
+	maven {
+		name = "Parchment Mappings"
+		url = uri("https://maven.parchmentmc.org")
+		content {
+			includeGroupAndSubgroups("org.parchmentmc")
+		}
+	}
+	maven {
+		name = "Xander Maven"
+		url = uri("https://maven.isxander.dev/releases")
+		content {
+			includeGroupAndSubgroups("dev.isxander")
+			includeGroupAndSubgroups("org.quiltmc.parsers")
+		}
+	}
+	maven {
+		name = "Fuzs Mod Resources"
+		url = uri("https://raw.githubusercontent.com/Fuzss/modresources/main/maven/")
+		content {
+			includeGroupAndSubgroups("fuzs")
+		}
+	}
+	maven {
+		name = "FzzyMaven"
+		url = uri("https://maven.fzzyhmstrs.me/")
+		content {
+			includeGroup("me.fzzyhmstrs")
+		}
+	}
+	maven {
+		name = "Cardinal Components"
+		url = uri("https://maven.ladysnake.org/releases")
+		content {
+			includeGroupAndSubgroups("dev.onyxstudios")
+			includeGroupAndSubgroups("org.ladysnake")
+		}
+	}
+	exclusiveContent {
+		forRepository {
+			maven {
+				url = uri("https://cursemaven.com")
+			}
+		}
+		filter {
+			includeGroup ("curse.maven")
+		}
+	}
+	maven {
+		name = "Gegy"
+		url = uri("https://maven.gegy.dev/releases/")
+		content {
+			includeGroupAndSubgroups("dev.lambdaurora")
+		}
+	}
+	maven {
+		name = "Nucleoid Maven (Trinkets)"
+		url = uri("https://maven.nucleoid.xyz")
+		content {
+			includeGroupAndSubgroups("eu.pb4")
+			includeGroupAndSubgroups("xyz.nucleoid")
+		}
+	}
+	maven {
+		name = "Sinytra"
+		url = uri("https://maven.sinytra.org")
+		content {
+			includeGroupAndSubgroups("org.sinytra")
+		}
+	}
+	maven {
+		name = "Cassian's Maven"
+		url = uri("https://maven.cassian.cc")
+		content {
+			includeGroupAndSubgroups("cc.cassian")
+			includeGroupAndSubgroups("folk.sisby")
+		}
+	}
+	maven {
+		url = uri("https://maven.minecraftforge.net/")
+	}
+	mavenLocal()
+}
+
+dependencies {
+	minecraft("com.mojang:minecraft:${property("deps.minecraft")}")
+	if (!unobfuscated) {
+		mappings(loom.layered {
+			officialMojangMappings()
+			parchment("org.parchmentmc.data:parchment-${property("deps.parchment")}@zip")
+			mappings("dev.lambdaurora:yalmm-mojbackward:${property("deps.minecraft")}+build.${property("deps.mojbackward")}")
+		})
+		implementation("org.jspecify:jspecify:1.0.0")
+	}
+	if (fabric) {
+		modImplementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+		modImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
+
+	} else if (hasProperty("deps.neoforge")) {
+		forgeUserdev("net.neoforged:neoforge:${property("deps.neoforge")}:userdev")
+	}
+
+	implementation("folk.sisby:kaleido-config:${property("deps.kaleido")}")
+	include("folk.sisby:kaleido-config:${property("deps.kaleido")}")
+}
+
+configurations.all {
+	resolutionStrategy {
+		force("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+	}
+}
+
+stonecutter {
+	replacements.string {
+		direction = eval(current.version, ">26")
+		replace("GuiGraphics", "GuiGraphicsExtractor")
+		replace("guiGraphics.drawString", "guiGraphics.text")
+		replace("guiGraphics.renderFakeItem", "guiGraphics.fakeItem")
+	}
+	replacements.string {
+		direction = eval(current.version, ">=26.2")
+		replace("DripstoneThickness", "SpeleothemThickness")
+		replace("DRIPSTONE_THICKNESS", "SPELEOTHEM_THICKNESS")
+	}
+	replacements.string {
+		direction = eval(current.version, ">1.21.2")
+		replace("pushPose", "pushMatrix")
+		replace("popPose", "popMatrix")
+	}
+}
+
+tasks {
+	register<Copy>("buildAndCollect") {
+		group = "build"
+		from(loomx.modJar.map { it.archiveFile })
+		into(rootProject.layout.buildDirectory.file("libs/${project.property("mod.version")}"))
+		dependsOn("build")
+	}
+}
+
+java {
+	withSourcesJar()
+	val javaCompat = if (stonecutter.eval(stonecutter.current.version, ">=26")) {
+		JavaVersion.VERSION_25
+	} else if (stonecutter.eval(stonecutter.current.version, ">=1.21")) {
+		JavaVersion.VERSION_21
+	} else {
+		JavaVersion.VERSION_17
+	}
+	sourceCompatibility = javaCompat
+	targetCompatibility = javaCompat
+}
+
+val additionalVersionsStr = findProperty("publish.additionalVersions") as String?
+val additionalVersions: List<String> = additionalVersionsStr
+	?.split(",")
+	?.map { it.trim() }
+	?.filter { it.isNotEmpty() }
+	?: emptyList()
+
+publishMods {
+	file = loomx.modJar.map { it.archiveFile.get() }
+	additionalFiles.from(loomx.modSourcesJar.map { it.archiveFile.get() })
+
+	// one of BETA, ALPHA, STABLE
+	type = STABLE
+	displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version}"
+	version = "${property("mod.version")}+${property("deps.minecraft")}-${loader}"
+	changelog = provider { rootProject.file("CHANGELOG-LATEST.md").readText() }
+	modLoaders.add(loader)
+
+	modrinth {
+		projectId = property("publish.modrinth") as String
+		accessToken = env.MODRINTH_API_KEY.orNull()
+		minecraftVersions.add(property("deps.minecraft") as String)
+		minecraftVersions.addAll(additionalVersions)
+		if (fabric)
+			requires("fabric-api")
+		environment = CLIENT_AND_SERVER
+	}
+}

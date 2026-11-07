@@ -1,0 +1,3 @@
+- Ported to 1.21.1 and 26.x.
+- Added config to control how much experience is dropped.
+- Experience is now dropped when the block is not directly broken by a player.

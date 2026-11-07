@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "experienced_crops",
+	"version": "${mod_version}",
+	"name": "${mod_name}",
+	"description": "${mod_description}",
+	"authors": [
+		"Ordana"
+	],
+	"contributors": [
+		"cassiancc"
+	],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/experienced_crops",
+		"sources": "https://github.com/AstralOrdana/ExperiencedCrops",
+		"issues": "https://github.com/AstralOrdana/ExperiencedCrops/issues"
+	},
+	"license": "${mod_license}",
+	"icon": "icon.png",
+	"environment": "*",
+	"mixins": [
+		"experienced_crops-common.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${fabric_loader_version}",
+		"fabric-api": "*",
+		"minecraft": "${fabric_minecraft_dep}"
+	}
+}

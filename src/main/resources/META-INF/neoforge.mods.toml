@@ -1,0 +1,32 @@
+issueTrackerURL="https://github.com/Silversmith-Mods/Experienced-Crops/issues"
+displayURL="https://modrinth.com/project/experienced_crops/"
+logoFile= "icon.png"
+iconFile= "icon.png"
+license="${mod_license}"
+modLoader = "javafml"
+loaderVersion = "[4,)"
+
+[[mods]]
+modId="experienced_crops"
+version="${mod_version}"
+displayName="${mod_name}"
+description="${mod_description}"
+authors="Ordana"
+credits="Ordana, cassiancc"
+
+[[dependencies.experienced_crops]]
+modId="neoforge"
+type="required"
+versionRange="[21, )"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.experienced_crops]]
+modId="minecraft"
+type="required"
+versionRange="${neo_minecraft_dep}"
+ordering="NONE"
+side="BOTH"
+
+[[mixins]]
+config = "experienced_crops-common.mixins.json"
